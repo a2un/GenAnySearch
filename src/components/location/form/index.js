@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { ref, set } from 'firebase/database';  // For Firebase Realtime Database
 import { database } from '../../../firebase';  // Import your Firebase Realtime Database instance
 import usePlacesAutocomplete, { getGeocode } from 'use-places-autocomplete';  // For Places API
+import {
+  Box,
+  TextField,
+  Button,
+  CircularProgress,
+  Typography,
+  Paper,
+  MenuItem,
+} from '@mui/material';  // Material-UI Components
+import './form.css';  // Assuming you still want to use some custom styles
 
 const MetadataForm = ({ clickedLocation, onFormSubmit, onClose, isOpen }) => {
   const [storeName, setStoreName] = useState('');  // Store name
@@ -65,7 +75,7 @@ const MetadataForm = ({ clickedLocation, onFormSubmit, onClose, isOpen }) => {
       const sanitizedLat = clickedLocation.lat.toString().replace(/\./g, '_');
       const sanitizedLng = clickedLocation.lng.toString().replace(/\./g, '_');
       const storeRef = ref(database, `foodStores/${sanitizedLat}_${sanitizedLng}`);
-        alert("My name")
+
       // Add metadata to Firebase Realtime Database
       await set(storeRef, {
         lat: clickedLocation.lat,
@@ -85,7 +95,6 @@ const MetadataForm = ({ clickedLocation, onFormSubmit, onClose, isOpen }) => {
       onClose();  // Close the drawer
       
     } catch (error) {
-        alert("Some eror")
       console.error("Error adding metadata: ", error);
     }
   };
@@ -107,80 +116,82 @@ const MetadataForm = ({ clickedLocation, onFormSubmit, onClose, isOpen }) => {
     <>
       {isOpen && <div className="drawer-overlay" onClick={onClose}></div>}
 
-      <div className={`metadata-form-container sideways-drawer ${isOpen ? 'open' : ''}`}>
-        <h3>Add Store Metadata</h3>
-        {loading ? <p>Loading address...</p> : null}
-        <form onSubmit={handleFormSubmit} className="metadata-form">
-          <div className="form-group">
-            <label htmlFor="address">Address</label>
-            <input
-              id="address"
-              type="text"
-              value={addressValue || value}  // Auto-fill with reverse geocoded address or input value
-              onChange={(e) => setValue(e.target.value)}  // Allow user to manually input address
-              className="form-input"
-              aria-label="Address"
-              placeholder="Search for an address"
+      <Box className={`metadata-form-container sideways-drawer ${isOpen ? 'open' : ''}`}>
+        <Paper elevation={3} sx={{ padding: 3, maxWidth: '400px', margin: 'auto' }}>
+          <Typography variant="h5" gutterBottom>Add Food Availability Details</Typography>
+          {loading && <CircularProgress size={24} />}
+          
+          <form onSubmit={handleFormSubmit} className="metadata-form">
+            <TextField
+              label="Address"
+              fullWidth
+              value={addressValue || value}
+              onChange={(e) => setValue(e.target.value)}
+              helperText="Search for an address"
+              variant="outlined"
+              margin="normal"
               required
             />
             {status === "OK" && (
-              <ul className="address-suggestions">
+              <Box component="ul" className="address-suggestions">
                 {data.map((suggestion) => (
-                  <li key={suggestion.place_id} onClick={() => handleSelectAddress(suggestion)}>
+                  <MenuItem
+                    key={suggestion.place_id}
+                    onClick={() => handleSelectAddress(suggestion)}
+                  >
                     {suggestion.description}
-                  </li>
+                  </MenuItem>
                 ))}
-              </ul>
+              </Box>
             )}
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="storeName">Store Name</label>
-            <input
-              id="storeName"
-              type="text"
+            <TextField
+              label="Store Name"
+              fullWidth
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
               placeholder="Enter store name"
+              variant="outlined"
+              margin="normal"
               required
-              className="form-input"
-              aria-label="Store Name"
             />
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="quantity">Quantity</label>
-            <input
-              id="quantity"
+            <TextField
+              label="Quantity"
+              fullWidth
               type="number"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="Enter quantity"
+              variant="outlined"
+              margin="normal"
               required
-              className="form-input"
-              aria-label="Quantity"
             />
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="description">Description</label>
-            <textarea
-              id="description"
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter description"
+              variant="outlined"
+              margin="normal"
               required
-              className="form-input"
-              aria-label="Description"
             />
-          </div>
 
-          <div className="form-actions">
-            <button type="submit" className="submit-btn">Submit</button>
-            <button type="button" onClick={onClose} className="cancel-btn">Cancel</button>
-          </div>
-        </form>
-      </div>
+            <Box display="flex" justifyContent="space-between" marginTop={2}>
+              <Button type="submit" variant="contained" color="primary">
+                Submit
+              </Button>
+              <Button onClick={onClose} variant="outlined" color="secondary">
+                Cancel
+              </Button>
+            </Box>
+          </form>
+        </Paper>
+      </Box>
     </>
   );
 };
