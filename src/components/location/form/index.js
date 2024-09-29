@@ -86,7 +86,7 @@ const MetadataForm = ({ clickedLocation, onFormSubmit, onClose, isOpen }) => {
         description,
       });
 
-      alert("Metadata added successfully!");
+      console.log("Metadata added successfully!");
       setStoreName('');
       setDescription('');
       setQuantity('');

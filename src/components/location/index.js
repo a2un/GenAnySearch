@@ -15,7 +15,9 @@ import {
   ListItem,
   ListItemText,
   Divider,
-} from '@mui/material'; // Material-UI components
+} from '@mui/material';
+
+import { useLocation } from 'react-router-dom';
 
 const mapContainerStyle = {
   width: '100%',
@@ -102,6 +104,32 @@ const SearchAllPage = () => {
   const [mapRef, setMapRef] = useState(null); // Correctly define `setMapRef`
   const [isEditingQuantity, setIsEditingQuantity] = useState(false); // Track if the user is editing the quantity
 
+  const location = useLocation();  // Get the current URL
+  const [query, setQuery] = useState('');
+  const [latLngPairs, setLatLngPairs] = useState([]);
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    
+    // Get the query parameter 'query'
+    const searchQuery = params.get('query');
+    console.log("My search query: ", searchQuery)
+    setQuery(searchQuery);
+
+    // Get the latLngPairs from the URL and deserialize
+    const latLngPairsString = params.get('latLngPairs');
+    if (latLngPairsString) {
+      try {
+        // Decode the URL component and parse the JSON string
+        const parsedLatLngPairs = JSON.parse(decodeURIComponent(latLngPairsString));
+        setLatLngPairs(parsedLatLngPairs);
+      } catch (error) {
+        console.error('Error parsing latLngPairs:', error);
+      }
+    }
+  }, [location.search]);
+
   // Function to reverse geocode lat/lng to an address
   const getAddressFromLatLng = useCallback(async (lat, lng) => {
     const geocoder = new window.google.maps.Geocoder();
@@ -141,14 +169,26 @@ const SearchAllPage = () => {
 
   // Retrieve data from Firebase Realtime Database
   useEffect(() => {
-    const storeRef = ref(database, 'foodStores');
+    const storeRef = ref(database, process.env.REACT_APP_DATABASE_NAME);
     onValue(storeRef, (snapshot) => {
       const data = snapshot.val();
       const markerData = [];
 
+      const checks = {}
+      if (latLngPairs && latLngPairs.length) {
+        latLngPairs.map((pair, i) => {
+          console.log("I have")
+          console.log(`${pair.lat}:${pair.lng}`)
+          checks[`${pair.lat}:${pair.lng}`] = true
+      })
+      }
+
       for (let key in data) {
         const { lat, lng, quantity, storeName, description, address, contact } = data[key];
-        if (quantity >= 1) {
+        if (query && !checks[`${lat}:${lng}`]) {
+          continue
+        }
+        if ( quantity >= 1) {
           markerData.push({
             lat,
             lng,
@@ -163,7 +203,7 @@ const SearchAllPage = () => {
       }
       setMarkers(markerData);
     });
-  }, []);
+  }, [latLngPairs]);
 
   // Handle map click to get lat/lng and reverse geocode address
   const handleMapClick = async (event) => {
@@ -180,7 +220,7 @@ const SearchAllPage = () => {
   // Add metadata and save to Firebase
   const handleFormSubmit = async (metadata) => {
     try {
-      const { storeName, quantity, description, contact } = metadata;
+      const { storeName = "", quantity = 0, description = "", contact = ""} = metadata;
 
       // Sanitize lat/lng keys
       const sanitizedLat = clickedLocation.lat.toString().replace('.', '_');
